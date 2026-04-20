@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DataBot Admin — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #25D366;
+      --green-dark: #128C7E;
+      --bg: #0d1117;
+      --sidebar: #010409;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --yellow: #e3b341;
+      --red: #f85149;
+      --blue: #58a6ff;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      position: fixed;
+      top: 0; left: 0;
+      height: 100vh;
+    }
+
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 20px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .sidebar-logo .icon {
+      background: var(--green);
+      border-radius: 10px;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .sidebar-logo span { font-weight: 700; font-size: 1.1rem; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px;
+      cursor: pointer;
+      border-radius: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s, background 0.2s;
+      text-decoration: none;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .nav-item.active { color: var(--green); background: rgba(37,211,102,0.07); border-right: 2px solid var(--green); }
+    .nav-item .icon { font-size: 1.1rem; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .logout-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Main ── */
+    .main {
+      margin-left: 220px;
+      flex: 1;
+      padding: 32px;
+      min-height: 100vh;
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .page-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .page-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 32px; }
+
+    /* ── Stat Cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stat-card .label { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .stat-card .value { font-size: 1.8rem; font-weight: 700; }
+    .stat-card .value.green { color: var(--green); }
+    .stat-card .value.yellow { color: var(--yellow); }
+    .stat-card .value.blue { color: var(--blue); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-header h3 { font-size: 1rem; font-weight: 600; }
+
+    .filter-btns { display: flex; gap: 8px; }
+
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn.active { background: var(--green); border-color: var(--green); color: #000; font-weight: 600; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 20px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 14px 20px;
+      font-size: 0.875rem;
+      border-bottom: 1px solid rgba(48,54,61,0.5);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-pending { background: rgba(227,179,65,0.15); color: var(--yellow); }
+    .badge-paid { background: rgba(88,166,255,0.15); color: var(--blue); }
+    .badge-delivered { background: rgba(37,211,102,0.15); color: var(--green); }
+    .badge-cancelled { background: rgba(248,81,73,0.15); color: var(--red); }
+
+    .deliver-btn {
+      background: rgba(37,211,102,0.1);
+      border: 1px solid rgba(37,211,102,0.3);
+      color: var(--green);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .deliver-btn:hover { background: var(--green); color: #000; }
+
+    /* ── Settings / Prices ── */
+    .prices-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .price-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .price-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .price-row label { font-size: 0.85rem; color: var(--muted); }
+
+    .price-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 10px;
+      width: 100px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      text-align: right;
+      outline: none;
+    }
+
+    .price-input:focus { border-color: var(--green); }
+
+    .save-btn {
+      width: 100%;
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 0.2s;
+    }
+
+    .save-btn:hover { background: #20c45a; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 100;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">📱</div>
+    <span>DataBot</span>
+  </div>
+
+  <nav>
+    <a class="nav-item active" onclick="showPage('dashboard')" href="#">
+      <span class="icon">📊</span> Dashboard
+    </a>
+    <a class="nav-item" onclick="showPage('orders')" href="#">
+      <span class="icon">📦</span> Orders
+    </a>
+    <a class="nav-item" onclick="showPage('settings')" href="#">
+      <span class="icon">⚙️</span> Settings
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+  </div>
+</aside>
+
+<!-- ── Main Content ── -->
+<main class="main">
+
+  <!-- Dashboard Page -->
+  <div class="page active" id="page-dashboard">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub">Overview of your data business</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Total Earnings</div>
+        <div class="value green" id="stat-earnings">₦0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total Orders</div>
+        <div class="value" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Pending</div>
+        <div class="value yellow" id="stat-pending">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Paid</div>
+        <div class="value blue" id="stat-paid">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Delivered</div>
+        <div class="value green" id="stat-delivered">0</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>Recent Orders</h3>
+        <button class="refresh-btn" onclick="loadStats()">↻ Refresh</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Network</th>
+            <th>Plan</th>
+            <th>Phone</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="recent-orders-body">
+          <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Orders Page -->
+  <div class="page" id="page-orders">
+    <h1 class="page-title">Orders</h1>
+    <p class="page-sub">View and manage all customer orders</p>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>All Orders</h3>
+        <div style="display:flex;gap:8px">
+          <div class="filter-btns">
+            <button class="filter-btn active" onclick="filterOrders('all', this)">All</button>
+            <button class="filter-btn" onclick="filterOrders('pending', this)">Pending</button>
+            <button class="filter-btn" onclick="filterOrders('paid', this)">Paid</button>
+            <button class="filter-btn" onclick="filterOrders('delivered', this)">Delivered</button>
+          </div>
+          <button class="refresh-btn" onclick="loadOrders()">↻ Refresh</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Buyer</th>
+            <th>Network</th>
+            <th>Plan</th>
+            <th>Recipient</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="orders-body">
+          <tr><td colspan="9" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Settings Page -->
+  <div class="page" id="page-settings">
+    <h1 class="page-title">Settings</h1>
+    <p class="page-sub">Update data prices for each network</p>
+
+    <div class="prices-grid" id="prices-grid">
+      <p style="color:var(--muted)">Loading prices...</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = '';
+  let allOrders = [];
+  let currentFilter = 'all';
+
+  // ── Auth check ──────────────────────────────────────────────────────────────
+  const token = localStorage.getItem('adminToken');
+  if (!token) window.location.href = '/pages/login.html';
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+
+  // ── Page navigation ─────────────────────────────────────────────────────────
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(`page-${name}`).classList.add('active');
+    event.currentTarget.classList.add('active');
+
+    if (name === 'orders') loadOrders();
+    if (name === 'settings') loadPrices();
+  }
+
+  function logout() {
+    localStorage.removeItem('adminToken');
+    window.location.href = '/pages/login.html';
+  }
+
+  // ── Load dashboard stats ────────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/api/admin/stats`, { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      document.getElementById('stat-earnings').textContent = `₦${data.totalEarnings.toLocaleString()}`;
+      document.getElementById('stat-total').textContent = data.total;
+      document.getElementById('stat-pending').textContent = data.pending;
+      document.getElementById('stat-paid').textContent = data.paid;
+      document.getElementById('stat-delivered').textContent = data.delivered;
+
+      const tbody = document.getElementById('recent-orders-body');
+      if (!data.recentOrders.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No orders yet</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.recentOrders.map(orderRow).join('');
+    } catch (err) {
+      if (err.message.includes('token')) logout();
+    }
+  }
+
+  // ── Load all orders ─────────────────────────────────────────────────────────
+  async function loadOrders() {
+    const res = await fetch(`${API}/api/orders`, { headers });
+    const data = await res.json();
+    allOrders = data.orders || [];
+    renderOrders();
+  }
+
+  function filterOrders(status, btn) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderOrders();
+  }
+
+  function renderOrders() {
+    const filtered = currentFilter === 'all'
+      ? allOrders
+      : allOrders.filter(o => o.status === currentFilter);
+
+    const tbody = document.getElementById('orders-body');
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="9" class="empty-state">No orders found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = filtered.map(o => `
+      <tr>
+        <td style="font-family:monospace;font-size:0.8rem">${o.id}</td>
+        <td>${o.buyerPhone}</td>
+        <td>${o.network}</td>
+        <td>${o.plan}</td>
+        <td>${o.recipientPhone}</td>
+        <td>₦${o.amount}</td>
+        <td><span class="badge badge-${o.status}">${o.status}</span></td>
+        <td style="color:var(--muted);font-size:0.8rem">${formatDate(o.createdAt)}</td>
+        <td>
+          ${o.status === 'paid' ? `<button class="deliver-btn" onclick="markDelivered('${o.id}')">✓ Mark Delivered</button>` : '—'}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function markDelivered(id) {
+    const res = await fetch(`${API}/api/orders/${id}/deliver`, { method: 'PATCH', headers });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('✅ Order marked as delivered');
+      loadOrders();
+    } else {
+      showToast('❌ ' + data.error);
+    }
+  }
+
+  // ── Load & update prices ────────────────────────────────────────────────────
+  async function loadPrices() {
+    const res = await fetch(`${API}/api/admin/prices`, { headers });
+    const prices = await res.json();
+
+    const networkIcons = { MTN: '🟡', Airtel: '🔴', Glo: '🟢', '9mobile': '🟣' };
+    const grid = document.getElementById('prices-grid');
+
+    grid.innerHTML = Object.entries(prices).map(([network, plans]) => `
+      <div class="price-card">
+        <h3>${networkIcons[network] || '📶'} ${network}</h3>
+        ${Object.entries(plans).map(([plan, price]) => `
+          <div class="price-row">
+            <label>${plan}</label>
+            <input class="price-input" type="number" value="${price}" id="price-${network}-${plan.replace(/\s/g,'_')}"/>
+          </div>
+        `).join('')}
+        <button class="save-btn" onclick="savePrices('${network}', ${JSON.stringify(Object.keys(plans))})">
+          Save ${network} Prices
+        </button>
+      </div>
+    `).join('');
+  }
+
+  async function savePrices(network, planKeys) {
+    const prices = {};
+    planKeys.forEach(plan => {
+      const val = document.getElementById(`price-${network}-${plan.replace(/\s/g,'_')}`).value;
+      prices[plan] = parseFloat(val);
+    });
+
+    const res = await fetch(`${API}/api/admin/prices`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ network, prices })
+    });
+
+    if (res.ok) {
+      showToast(`✅ ${network} prices updated`);
+    } else {
+      const data = await res.json();
+      showToast('❌ ' + (data.error || 'Update failed'));
+    }
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  function orderRow(o) {
+    return `
+      <tr>
+        <td style="font-family:monospace;font-size:0.8rem">${o.id}</td>
+        <td>${o.network}</td>
+        <td>${o.plan}</td>
+        <td>${o.recipientPhone}</td>
+        <td>₦${o.amount}</td>
+        <td><span class="badge badge-${o.status}">${o.status}</span></td>
+        <td style="color:var(--muted);font-size:0.8rem">${formatDate(o.createdAt)}</td>
+      </tr>
+    `;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('en-NG', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── Initial load ─────────────────────────────────────────────────────────────
+  loadStats();
+  setInterval(loadStats, 30000); // Auto-refresh every 30 seconds
+</script>
+</body>
+</html>
